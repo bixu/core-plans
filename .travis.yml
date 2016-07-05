@@ -1,0 +1,7 @@
+branches:
+  only:
+  - auto
+  - master
+notifications:
+  webhooks: https://habitat-homu.herokuapp.com/travis
+script: travis.sh
