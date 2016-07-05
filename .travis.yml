@@ -4,4 +4,4 @@ branches:
   - master
 notifications:
   webhooks: https://habitat-homu.herokuapp.com/travis
-script: travis.sh
+script: ./travis.sh
