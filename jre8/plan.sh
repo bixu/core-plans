@@ -1,20 +1,26 @@
+# shellcheck disable=SC2164
 pkg_origin=core
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
 pkg_name=jre8
-pkg_version=8u102
-pkg_source=http://download.oracle.com/otn-pub/java/jdk/${pkg_version}-b14/jre-${pkg_version}-linux-x64.tar.gz
-pkg_shasum=214ff6b52f5b1bccfc139dca910cea25f6fa19b9b96b4e3c10e699cd3e780dfb
-pkg_filename=jre-${pkg_version}-linux-x64.tar.gz
+pkg_version=8.181.0
+pkg_upstream_version=8u181
+pkg_source="http://download.oracle.com/otn-pub/java/jdk/${pkg_upstream_version}-b13/96a7b8442fe848ef90c96a2fad6ed6d1/jdk-${pkg_upstream_version}-linux-x64.tar.gz"
+pkg_shasum="1845567095bfbfebd42ed0d09397939796d05456290fb20a83c476ba09f991d3"
+pkg_filename="jre-${pkg_upstream_version}-linux-x64.tar.gz"
 pkg_license=('Oracle Binary Code License Agreement for the Java SE Platform Products and JavaFX')
 pkg_description=('Oracle Java Runtime Environment. This package is made available to you to allow you to run your applications as provided in and subject to the terms of the Oracle Binary Code License Agreement for the Java SE Platform Products and JavaFX, found at http://www.oracle.com/technetwork/java/javase/terms/license/index.html')
-pkg_upstream_url=http://www.oracle.com/technetwork/java/javase/overview/index.html
-pkg_deps=(core/glibc)
+pkg_upstream_url="http://www.oracle.com/technetwork/java/javase/overview/index.html"
+pkg_deps=(core/glibc core/gcc-libs core/xlib core/libxi core/libxext core/libxrender core/libxtst)
 pkg_build_deps=(core/patchelf)
-pkg_bin_dirs=(bin)
-pkg_lib_dirs=(lib)
+pkg_bin_dirs=(bin jre/bin)
+pkg_lib_dirs=(lib jre/lib)
 pkg_include_dirs=(include)
 
-source_dir=$HAB_CACHE_SRC_PATH/${pkg_name}-${pkg_version}
+source_dir=$HAB_CACHE_SRC_PATH/${pkg_name}-${pkg_upstream_version}
+
+do_setup_environment() {
+ set_runtime_env JAVA_HOME "$pkg_prefix"
+}
 
 ## Refer to habitat/components/plan-build/bin/hab-plan-build.sh for help
 
@@ -24,6 +30,8 @@ download_file() {
   local url="$1"
   local dst="$2"
   local sha="$3"
+
+  build_line "By including the JRE, you accept the terms of the Oracle Binary Code License Agreement for the Java SE Platform Products and JavaFX, which can be found at http://www.oracle.com/technetwork/java/javase/terms/license/index.html"
 
   pushd "$HAB_CACHE_SRC_PATH" > /dev/null
   if [[ -f $dst && -n "$sha" ]]; then
@@ -45,6 +53,9 @@ download_file() {
 
 do_unpack() {
   local unpack_file="$HAB_CACHE_SRC_PATH/$pkg_filename"
+  if [[ -d "$source_dir" ]]; then
+    rm -rf "$source_dir";
+  fi
   mkdir "$source_dir"
   pushd "$source_dir" >/dev/null
   tar xz --strip-components=1 -f "$unpack_file"
@@ -64,9 +75,25 @@ do_install() {
   build_line "Setting interpreter for '${pkg_prefix}/bin/java' '$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2'"
   build_line "Setting rpath for '${pkg_prefix}/bin/java' to '$LD_RUN_PATH'"
 
-  export LD_RUN_PATH=$LD_RUN_PATH:$pkg_prefix/lib/amd64/jli
+  LD_RUN_PATH=$LD_RUN_PATH:$pkg_prefix/lib/amd64/jli:$pkg_prefix/lib/amd64/server:$pkg_prefix/lib/amd64
+  LD_RUN_PATH=$LD_RUN_PATH:$pkg_prefix/jre/lib/amd64/jli:$pkg_prefix/jre/lib/amd64/server:$pkg_prefix/jre/lib/amd64
+  export LD_RUN_PATH
 
   find "$pkg_prefix"/bin -type f -executable \
     -exec sh -c 'file -i "$1" | grep -q "x-executable; charset=binary"' _ {} \; \
     -exec patchelf --interpreter "$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2" --set-rpath "${LD_RUN_PATH}" {} \;
+
+  find "$pkg_prefix"/jre/bin -type f -executable \
+    -exec sh -c 'file -i "$1" | grep -q "x-executable; charset=binary"' _ {} \; \
+    -exec patchelf --interpreter "$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2" --set-rpath "${LD_RUN_PATH}" {} \;
+
+  find "$pkg_prefix/lib/amd64" -type f -name "*.so" \
+    -exec patchelf --set-rpath "${LD_RUN_PATH}" {} \;
+
+  find "$pkg_prefix/jre/lib/amd64" -type f -name "*.so" \
+    -exec patchelf --set-rpath "${LD_RUN_PATH}" {} \;
+}
+
+do_strip() {
+  return 0
 }

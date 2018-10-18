@@ -7,7 +7,9 @@
 #                                                    __/ |
 #                                                   |___/
 
+#A valid license key is needed for this application to start correctly
 license = ""
+port = 8081
 
 [database]
 
@@ -17,5 +19,9 @@ driver = "org.apache.derby.jdbc.EmbeddedDriver"
 
 [storage]
 
-binary_provider_type       = "filesystem"
-binary_provider_cache_size = "5GB"
+binary_provider_type       = "file-system"
+binary_provider_cache_size = "5000000000"
+
+[jvm]
+min_heap = "512m"
+max_heap = "2g"

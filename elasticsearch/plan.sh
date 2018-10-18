@@ -1,29 +1,47 @@
 pkg_name=elasticsearch
 pkg_origin=core
-pkg_version=2.4.1
+pkg_version=6.2.2
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
+pkg_description="Open Source, Distributed, RESTful Search Engine"
+pkg_upstream_url="https://elastic.co"
 pkg_license=('Revised BSD')
-pkg_source=https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/${pkg_version}/${pkg_name}-${pkg_version}.tar.gz
-pkg_filename=${pkg_name}-${pkg_version}.tar.gz
-pkg_shasum=23a369ef42955c19aaaf9e34891eea3a055ed217d7fbe76da0998a7a54bbe167
-pkg_deps=(core/glibc core/server-jre)
+pkg_source=https://artifacts.elastic.co/downloads/${pkg_name}/${pkg_name}-${pkg_version}.tar.gz
+pkg_shasum=b26e3546784b39ce3eacc10411e68ada427c5764bcda3064e9bb284eca907983
+pkg_deps=(
+  core/coreutils-static
+  core/glibc
+  core/jre8
+  core/wget
+)
 pkg_bin_dirs=(es/bin)
-pkg_lib_dirs=(lib)
-pkg_svc_run="elasticsearch --default.path.conf=$pkg_svc_config_path"
-pkg_expose=(9200 9300)
+pkg_binds_optional=(
+  [elasticsearch]="http-port transport-port"
+)
+pkg_lib_dirs=(es/lib)
+pkg_exports=(
+  [http-port]=network.port
+  [transport-port]=transport.port
+)
+pkg_exposes=(http-port transport-port)
 
 do_build() {
   return 0
 }
 
 do_install() {
-  build_line "Copying files from $PWD"
+  install -vDm644 README.textile "${pkg_prefix}/README.textile"
+  install -vDm644 LICENSE.txt "${pkg_prefix}/LICENSE.txt"
+  install -vDm644 NOTICE.txt "${pkg_prefix}/NOTICE.txt"
+
   # Elasticsearch is greedy when grabbing config files from /bin/..
   # so we need to put the untemplated config dir out of reach
-  install -vDm644 README.textile $pkg_prefix/share/README.textile
-  install -vDm644 LICENSE.txt $pkg_prefix/share/licenses/LICENSE.txt
-  install -vDm644 NOTICE.txt $pkg_prefix/share/licenses/NOTICE.txt
+  mkdir -p "${pkg_prefix}/es"
+  cp -a ./* "${pkg_prefix}/es"
 
-  mkdir -p $pkg_prefix/es
-  cp -a bin lib modules $pkg_prefix/es
+  # jvm.options needs to live relative to the binary.
+  # mkdir -p "$pkg_prefix/es/config"
+  # install -vDm644 config/jvm.options "$pkg_prefix/es/config/jvm.options"
+
+  # Delete unused binaries to save space
+  rm "${pkg_prefix}/es/bin/"*.bat "${pkg_prefix}/es/bin/"*.exe
 }

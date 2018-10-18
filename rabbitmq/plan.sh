@@ -1,27 +1,58 @@
 pkg_name=rabbitmq
-pkg_distname=${pkg_name}-server
+pkg_distname="${pkg_name}-server"
 pkg_origin=core
-pkg_version=3.6.5
+pkg_version=3.7.7
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
 pkg_license=('MPL')
 pkg_description="Open source multi-protocol messaging broker"
 pkg_upstream_url="https://www.rabbitmq.com"
-pkg_source=http://www.rabbitmq.com/releases/rabbitmq-server/v3.6.5/rabbitmq-server-3.6.5.tar.xz
-pkg_shasum=9550433ca8aaf5130bf5235bb978c44d3c4694cbd09d97114b3859f4895788ec
-pkg_dirname=${pkg_distname}-${pkg_version}
-pkg_deps=(core/glibc core/erlang)
-pkg_build_deps=(core/bash core/python2 core/zip core/unzip core/git core/coreutils core/make core/gcc core/erlang core/libxslt core/libxml2 core/gawk core/diffutils core/perl core/grep core/rsync)
-pkg_lib_dirs=(lib)
+pkg_source="https://github.com/rabbitmq/rabbitmq-server/releases/download/v${pkg_version}/rabbitmq-server-${pkg_version}.tar.xz"
+pkg_shasum=3549963ba562768387095eddeb2e69b6885fb11c7f4a3b8f53250694b4265431
+pkg_dirname="${pkg_distname}-${pkg_version}"
+pkg_deps=(
+  core/coreutils
+  core/glibc
+  core/erlang
+)
+pkg_build_deps=(
+  core/bash
+  core/diffutils
+  core/gawk
+  core/gcc
+  core/git
+  core/grep
+  core/libxml2
+  core/libxslt
+  core/make
+  core/perl
+  core/python2
+  core/rsync
+  core/unzip
+  core/zip
+  core/elixir
+)
 pkg_include_dirs=(include)
 pkg_bin_dirs=(sbin)
-pkg_exposes=(5672)
+pkg_exports=(
+  [port]=listeners.tcp.default
+)
+pkg_exposes=(port)
 
 do_prepare() {
-  # The `/usr/bin/env` path is hardcoded, so we'll add a symlink if needed.
-  if [[ ! -r /usr/bin/env ]]; then
-    ln -sv "$(pkg_path_for coreutils)/bin/env" /usr/bin/env
-    _clean_env=true
-  fi
+  export PREFIX="${pkg_prefix}"
+  build_line "Setting PREFIX=${PREFIX}"
+  export DESTDIR="${PREFIX}"
+  build_line "Setting DESTDIR=${DESTDIR}"
+  export RMQ_ROOTDIR=""
+  build_line "Setting RMQ_ROOTDIR=${RMQ_ROOTDIR}"
+  export RMQ_LIBDIR=""
+  build_line "Setting RMQ_LIBDIR=${RMQ_LIBDIR}"
+  export RMQ_ERLAPP_DIR=""
+  build_line "Setting RMQ_ERLAPP_DIR=${RMQ_ERLAPP_DIR}"
+  export LANG="en_US.utf8"
+  export LANGUAGE="en_US:"
+  export LC_ALL=en_US.UTF-8
+  build_line "Setting locale to en_US.utf8"
 }
 
 do_build() {
@@ -30,20 +61,4 @@ do_build() {
 
 do_check() {
   make tests
-}
-
-do_install() {
-  export PREFIX="${pkg_prefix}"
-  export DESTDIR="${PREFIX}"
-  export RMQ_ROOTDIR=""
-  export RMQ_LIBDIR=""
-  export RMQ_ERLAPP_DIR=""
-  make install
-}
-
-do_end() {
-  # Clean up the `env` link, if we set it up.
-  if [[ -n "$_clean_env" ]]; then
-    rm -fv /usr/bin/env
-  fi
 }

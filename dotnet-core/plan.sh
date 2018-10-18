@@ -1,20 +1,20 @@
 pkg_name=dotnet-core
 pkg_origin=core
-pkg_version=1.0.0-preview2-003121
-pkg_license=('Microsoft .NET Library')
+pkg_version=2.1.4
+pkg_license=('MIT')
 pkg_upstream_url=https://www.microsoft.com/net/core
 pkg_description=".NET Core is a blazing fast, lightweight and modular platform
   for creating web applications and services that run on Windows,
   Linux and Mac."
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
-pkg_source="https://download.microsoft.com/download/1/5/2/1523EBE1-3764-4328-8961-D1BD8ECA9295/dotnet-dev-debian-x64.$pkg_version.tar.gz"
-pkg_shasum=204ceab7bc92c17d17691b0d5c1d54992fc78a969fc217a8423045875a4c63ed
-pkg_filename="dotnet-debian-x64.$pkg_version.tar.gz"
+pkg_source="https://download.microsoft.com/download/A/7/8/A78F1D25-8D5C-4411-B544-C7D527296D5E/dotnet-runtime-2.1.4-linux-x64.tar.gz"
+pkg_shasum=55e6d5c93ab5bb492c82b8d0d57d0d67ac720733f10c18605d8b93d26866adb2
+pkg_filename="dotnet-debian-x64.${pkg_version}.tar.gz"
 pkg_deps=(
   core/curl
   core/gcc-libs
   core/glibc
-  core/icu/52.1
+  core/icu52
   core/krb5
   core/libunwind
   core/lttng-ust
@@ -29,14 +29,17 @@ pkg_bin_dirs=(bin)
 
 do_unpack() {
   # Extract into $pkg_dirname instead of straight into $HAB_CACHE_SRC_PATH.
-  mkdir -p "$pkg_dirname"
-  tar xfz "$pkg_filename" -C "$pkg_dirname"
+  mkdir -p "${HAB_CACHE_SRC_PATH}/${pkg_dirname}"
+  tar xf "${HAB_CACHE_SRC_PATH}/${pkg_filename}" \
+    -C "${HAB_CACHE_SRC_PATH}/${pkg_dirname}" \
+    --no-same-owner
 }
 
 do_prepare() {
-  patchelf --interpreter "$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2" \
-    --set-rpath "$LD_RUN_PATH" \
-    ./dotnet
+  find . -type f -name 'dotnet' \
+    -exec patchelf --interpreter "$(pkg_path_for glibc)/lib/ld-linux-x86-64.so.2" --set-rpath "${LD_RUN_PATH}" {} \;
+  find . -type f -name '*.so*' \
+    -exec patchelf --set-rpath "${LD_RUN_PATH}" {} \;
 }
 
 do_build() {
@@ -44,15 +47,13 @@ do_build() {
 }
 
 do_install() {
-  # Copy the files into the package
-  cp -a . "$pkg_prefix"
+  cp -a . "${pkg_prefix}/bin"
+  chmod o+r -R "${pkg_prefix}/bin"
+  # Move text files out of bin directory
+  mv "${pkg_prefix}/bin/LICENSE.txt" "${pkg_prefix}/LICENSE.txt"
+  mv "${pkg_prefix}/bin/ThirdPartyNotices.txt" "${pkg_prefix}/ThirdPartyNotices.txt"
+}
 
-  # Wrap the binary in a script that sets the library paths
-  mkdir -p "$pkg_prefix/bin"
-  cat > "$pkg_prefix/bin/dotnet" <<EOF
-#!/bin/sh
-export LD_LIBRARY_PATH="$pkg_prefix/lib:$LD_RUN_PATH:\$LD_LIBRARY_PATH"
-exec $pkg_prefix/dotnet \$@
-EOF
-  chmod +x "$pkg_prefix/bin/dotnet"
+do_strip() {
+  return 0
 }

@@ -1,5 +1,5 @@
 -   repo: git://github.com/pre-commit/pre-commit-hooks
-    sha: 3fa02652357ff0dbb42b5bc78c673b7bc105fcf3
+    sha: v1.1.1
     hooks:
     -   id: check-added-large-files
     -   id: check-merge-conflict
@@ -8,11 +8,12 @@
         exclude: config/.*$
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+        exclude: .*\.patch
 -   repo: git://github.com/detailyang/pre-commit-shell
-    sha: 28f9ecf7857d17ebd9d1715cb5bf208c9e8e2bdd
+    sha: 1.0.2
     hooks:
     -   id: shell-lint
-        args: ["--exclude=SC1090,SC1091,SC2034,SC2039,SC2148,SC2153,SC2154"]
+        args: ["--exclude=SC1090,SC1091,SC2034,SC2039,SC2148,SC2153,SC2154,SC2140"]
         exclude: config/.*$
 -   repo: local
     hooks:
@@ -21,3 +22,13 @@
         entry: ./bin/check-default-variables.sh
         language: system
         files: plan.sh$
+    -   id: check-bldr-toml
+        name: Check for an entry in .bldr.toml
+        entry: ./bin/check-bldr-toml.sh
+        language: system
+        files: plan.sh$
+    -   id: check-bad-patterns
+        name: Check for bad patterns in Hook files
+        entry: ./bin/check-bad-patterns.sh
+        language: system
+        files: hooks/*

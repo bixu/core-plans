@@ -1,12 +1,12 @@
 pkg_name=nginx
 pkg_origin=core
-pkg_version=1.10.1
+pkg_version=1.15.5
 pkg_description="NGINX web server."
 pkg_maintainer="The Habitat Maintainers <humans@habitat.sh>"
-pkg_license=('bsd')
+pkg_license=('BSD-2-Clause')
 pkg_source=https://nginx.org/download/nginx-${pkg_version}.tar.gz
 pkg_upstream_url=https://nginx.org/
-pkg_shasum=1fd35846566485e03c0e318989561c135c598323ff349c503a6c14826487a801
+pkg_shasum=1a3a889a8f14998286de3b14cc1dd5b2747178e012d6d480a18aa413985dae6f
 pkg_deps=(core/glibc core/libedit core/ncurses core/zlib core/bzip2 core/openssl core/pcre)
 pkg_build_deps=(core/gcc core/make core/coreutils)
 pkg_lib_dirs=(lib)
@@ -14,7 +14,10 @@ pkg_bin_dirs=(sbin)
 pkg_include_dirs=(include)
 pkg_svc_run="nginx"
 pkg_svc_user="root"
-pkg_expose=(80 443)
+pkg_exports=(
+  [port]=http.listen.port
+)
+pkg_exposes=(port)
 
 do_build() {
   ./configure --prefix="$pkg_prefix" \
@@ -36,6 +39,7 @@ do_build() {
     --with-pcre-jit \
     --with-file-aio \
     --with-stream=dynamic \
+    --with-stream_ssl_module \
     --with-mail=dynamic \
     --with-http_gunzip_module \
     --with-http_gzip_static_module \
@@ -57,6 +61,7 @@ do_build() {
 }
 
 do_install() {
+  make install
   mkdir -p "$pkg_prefix/sbin"
   cp "$HAB_CACHE_SRC_PATH/$pkg_dirname/objs/nginx" "$pkg_prefix/sbin"
 }
